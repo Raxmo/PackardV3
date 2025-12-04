@@ -1,6 +1,7 @@
 use regex::Regex;
 use crate::effects::Effect;
 use crate::conditions::Condition;
+use crate::dialogue::DialogueLine;
 
 #[derive(Debug, Clone)]
 pub struct Scene {
@@ -8,6 +9,7 @@ pub struct Scene {
     pub title: String,
     pub content: String,
     pub choices: Vec<Choice>,
+    pub dialogue: Vec<DialogueLine>,
 }
 
 #[derive(Debug, Clone)]
@@ -101,11 +103,15 @@ impl Scene {
             });
         }
 
+        // Extract dialogue from content
+        let dialogue = crate::dialogue::extract_dialogue(body);
+
         Ok(Scene {
             id,
             title,
             content: body.to_string(),
             choices,
+            dialogue,
         })
     }
 }

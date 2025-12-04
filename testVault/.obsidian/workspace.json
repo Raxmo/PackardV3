@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "start.md",
+                "file": "end.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "start"
+              "title": "end"
             }
           }
         ]
@@ -185,17 +185,17 @@
   },
   "active": "034a7e82bb13594d",
   "lastOpenFiles": [
-    "secret.md",
-    "characters/old_keeper.md",
-    "characters/unknown.md",
-    "characters",
-    "end.md",
-    "key.md",
-    "journal.md",
     "investigate.md",
+    "key.md",
     "start.md",
+    "secret.md",
+    "leave.md",
+    "journal.md",
+    "end.md",
+    "characters/unknown.md",
+    "characters/old_keeper.md",
+    "characters",
     "Investigate the room.md",
-    "Leave immediately.md",
-    "leave.md"
+    "Leave immediately.md"
   ]
 }

@@ -58,9 +58,18 @@ fn main() {
         
         clear_screen();
         
-        // Show content (without wikilinks)
+        // Show content (without wikilinks and dialogue)
         let clean_content = strip_wikilinks(&scene.content);
+        let clean_content = packard_core::dialogue::strip_dialogue(&clean_content);
         println!("{}", clean_content);
+
+        // Show dialogue separately
+        if !scene.dialogue.is_empty() {
+            println!("\n{}", "-".repeat(40));
+            for line in &scene.dialogue {
+                println!("**{}**: \"{}\"", line.character, line.text);
+            }
+        }
         
         // Get available choices based on conditions
         let available_choices = runtime.available_choices();
@@ -82,7 +91,21 @@ fn main() {
         for (display_idx, (_orig_idx, choice)) in available_choices.iter().enumerate() {
             print!("{}. {}", display_idx + 1, choice.label);
             if let Some(cond) = &choice.condition {
-                print!(" {{if: {} {} {}}}", cond.variable, cond.operator, cond.value);
+                match cond {
+                    packard_core::Condition::Simple(simple) => {
+                        print!(" {{if: {} {} {}}}", simple.variable, simple.operator, simple.value);
+                    }
+                    packard_core::Condition::Compound(conditions) => {
+                        print!(" {{if: ");
+                        for (i, (op, cond)) in conditions.iter().enumerate() {
+                            if i > 0 {
+                                print!(" {} ", op.as_ref().unwrap_or(&"AND".to_string()));
+                            }
+                            print!("{} {} {}", cond.variable, cond.operator, cond.value);
+                        }
+                        print!("}}");
+                    }
+                }
             }
             if !choice.effects.is_empty() {
                 print!(" [", );
