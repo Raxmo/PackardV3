@@ -1,5 +1,6 @@
 use regex::Regex;
 use crate::effects::Effect;
+use crate::conditions::Condition;
 
 #[derive(Debug, Clone)]
 pub struct Scene {
@@ -14,6 +15,7 @@ pub struct Choice {
     pub target: String,
     pub label: String,
     pub effects: Vec<Effect>,
+    pub condition: Option<Condition>,
 }
 
 impl Scene {
@@ -39,12 +41,49 @@ impl Scene {
             }
         }
 
-        // Parse wikilinks for choices: [[target|label]](effects)
-        // Pattern: [[target|label]] or [[target|label]](effect1; effect2)
-        let wikilink_re = Regex::new(r"\[\[([^\]|]+)\|([^\]]+)\]\](?:\(([^)]*)\))?").unwrap();
+        // Parse all wikilinks and conditionals: {if: condition}[[target|label]](effects) or [[target|label]](effects)
+        let choice_re = Regex::new(r"\{if:\s*([^}]+)\}?\[\[([^\]|]+)\|([^\]]+)\]\](?:\(([^)]*)\))?").unwrap();
         let mut choices = Vec::new();
+        let mut processed_positions = std::collections::HashSet::new();
 
+        for cap in choice_re.captures_iter(body) {
+            let condition_str = cap.get(1).as_ref().map(|c| c.as_str());
+            let target = cap.get(2).unwrap().as_str().to_string();
+            let label = cap.get(3).unwrap().as_str().to_string();
+            
+            let condition = condition_str.and_then(|s| crate::conditions::parse_condition(s).ok());
+            
+            let effects = if let Some(effects_str) = cap.get(4) {
+                crate::effects::parse_effects(effects_str.as_str()).unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+
+            // Track position to avoid duplicates
+            if let Some(pos) = cap.get(0) {
+                processed_positions.insert(pos.start());
+            }
+
+            choices.push(Choice { 
+                target, 
+                label, 
+                effects,
+                condition,
+            });
+        }
+
+        // Also parse simple unconditional wikilinks: [[target|label]](effects)
+        let wikilink_re = Regex::new(r"\[\[([^\]|]+)\|([^\]]+)\]\](?:\(([^)]*)\))?").unwrap();
+        
         for cap in wikilink_re.captures_iter(body) {
+            // Skip if this was already captured by the conditional regex
+            if let Some(pos) = cap.get(0) {
+                let text = pos.as_str();
+                if text.contains("{if:") {
+                    continue;
+                }
+            }
+            
             let target = cap.get(1).unwrap().as_str().to_string();
             let label = cap.get(2).unwrap().as_str().to_string();
             
@@ -54,7 +93,12 @@ impl Scene {
                 Vec::new()
             };
 
-            choices.push(Choice { target, label, effects });
+            choices.push(Choice { 
+                target, 
+                label, 
+                effects,
+                condition: None,
+            });
         }
 
         Ok(Scene {

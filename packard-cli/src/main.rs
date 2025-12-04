@@ -62,7 +62,10 @@ fn main() {
         let clean_content = strip_wikilinks(&scene.content);
         println!("{}", clean_content);
         
-        if scene.choices.is_empty() {
+        // Get available choices based on conditions
+        let available_choices = runtime.available_choices();
+
+        if available_choices.is_empty() {
             println!("\n[End of narrative]");
             break;
         }
@@ -76,8 +79,11 @@ fn main() {
 
         // Show choices
         println!("\n{}", "-".repeat(40));
-        for (i, choice) in scene.choices.iter().enumerate() {
-            print!("{}. {}", i + 1, choice.label);
+        for (display_idx, (_orig_idx, choice)) in available_choices.iter().enumerate() {
+            print!("{}. {}", display_idx + 1, choice.label);
+            if let Some(cond) = &choice.condition {
+                print!(" {{if: {} {} {}}}", cond.variable, cond.operator, cond.value);
+            }
             if !choice.effects.is_empty() {
                 print!(" [", );
                 for (j, effect) in choice.effects.iter().enumerate() {
@@ -90,7 +96,7 @@ fn main() {
         }
 
         // Get user input
-        print!("\nSelect choice (1-{}): ", scene.choices.len());
+        print!("\nSelect choice (1-{}): ", available_choices.len());
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
@@ -98,13 +104,17 @@ fn main() {
             break;
         }
 
-        let choice = match input.trim().parse::<usize>() {
-            Ok(n) if n > 0 && n <= scene.choices.len() => n - 1,
+        let choice_idx = match input.trim().parse::<usize>() {
+            Ok(n) if n > 0 && n <= available_choices.len() => n - 1,
             _ => {
                 println!("Invalid choice. Try again.");
                 continue;
             }
         };
+
+        // Get the original index of the choice
+        let (orig_idx, _) = available_choices[choice_idx];
+        let choice = orig_idx;
 
         if let Err(e) = runtime.choose(choice) {
             eprintln!("Error: {}", e);

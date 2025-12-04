@@ -25,6 +25,22 @@ impl Runtime {
         self.vault.get_scene(&self.current_scene_id).unwrap()
     }
 
+    pub fn available_choices(&self) -> Vec<(usize, &crate::scene::Choice)> {
+        let scene = self.current_scene();
+        scene
+            .choices
+            .iter()
+            .enumerate()
+            .filter(|(_, choice)| {
+                if let Some(condition) = &choice.condition {
+                    condition.evaluate(&self.state).unwrap_or(false)
+                } else {
+                    true
+                }
+            })
+            .collect()
+    }
+
     pub fn current_scene_id(&self) -> &str {
         &self.current_scene_id
     }
