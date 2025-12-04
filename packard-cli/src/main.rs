@@ -79,43 +79,10 @@ fn main() {
             break;
         }
 
-        // Show state
-        println!("\n{}", "-".repeat(40));
-        println!("State:");
-        for (key, value) in &runtime.state().variables {
-            println!("  {}: {:?}", key, value);
-        }
-
         // Show choices
-        println!("\n{}", "-".repeat(40));
+        println!();
         for (display_idx, (_orig_idx, choice)) in available_choices.iter().enumerate() {
-            print!("{}. {}", display_idx + 1, choice.label);
-            if let Some(cond) = &choice.condition {
-                match cond {
-                    packard_core::Condition::Simple(simple) => {
-                        print!(" {{if: {} {} {}}}", simple.variable, simple.operator, simple.value);
-                    }
-                    packard_core::Condition::Compound(conditions) => {
-                        print!(" {{if: ");
-                        for (i, (op, cond)) in conditions.iter().enumerate() {
-                            if i > 0 {
-                                print!(" {} ", op.as_ref().unwrap_or(&"AND".to_string()));
-                            }
-                            print!("{} {} {}", cond.variable, cond.operator, cond.value);
-                        }
-                        print!("}}");
-                    }
-                }
-            }
-            if !choice.effects.is_empty() {
-                print!(" [", );
-                for (j, effect) in choice.effects.iter().enumerate() {
-                    if j > 0 { print!("; "); }
-                    print!("{} {} {}", effect.variable, effect.operation, effect.value);
-                }
-                print!("]");
-            }
-            println!();
+            println!("{}. {}", display_idx + 1, choice.label);
         }
 
         // Get user input
