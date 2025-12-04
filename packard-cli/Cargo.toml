@@ -1,0 +1,13 @@
+[package]
+name = "packard-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "packard"
+path = "src/main.rs"
+
+[dependencies]
+packard-core = { path = "../packard-core" }
+regex = "1"
