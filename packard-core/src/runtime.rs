@@ -1,9 +1,11 @@
 use crate::vault::Vault;
 use crate::scene::Scene;
+use crate::effects::State;
 
 pub struct Runtime {
     vault: Vault,
     current_scene_id: String,
+    state: State,
 }
 
 impl Runtime {
@@ -15,6 +17,7 @@ impl Runtime {
         Ok(Runtime {
             vault,
             current_scene_id: start_scene.to_string(),
+            state: State::new(),
         })
     }
 
@@ -26,6 +29,10 @@ impl Runtime {
         &self.current_scene_id
     }
 
+    pub fn state(&self) -> &State {
+        &self.state
+    }
+
     pub fn choose(&mut self, choice_index: usize) -> Result<(), String> {
         let scene = self.current_scene();
         
@@ -33,11 +40,15 @@ impl Runtime {
             return Err(format!("Invalid choice: {}", choice_index));
         }
 
-        let next_id = scene.choices[choice_index].target.clone();
+        let choice = scene.choices[choice_index].clone();
+        let next_id = choice.target.clone();
         
         if !self.vault.get_scene(&next_id).is_some() {
             return Err(format!("Scene '{}' not found", next_id));
         }
+
+        // Apply effects before changing scene
+        self.state.apply_effects(&choice.effects)?;
 
         self.current_scene_id = next_id;
         Ok(())

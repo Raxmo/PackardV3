@@ -3,14 +3,17 @@ use std::fs;
 use std::path::Path;
 use walkdir::WalkDir;
 use crate::scene::Scene;
+use crate::character::Character;
 
 pub struct Vault {
     pub scenes: HashMap<String, Scene>,
+    pub characters: HashMap<String, Character>,
 }
 
 impl Vault {
     pub fn load(path: &str) -> Result<Self, String> {
         let mut scenes = HashMap::new();
+        let mut characters = HashMap::new();
         let vault_path = Path::new(path);
 
         if !vault_path.exists() {
@@ -34,23 +37,32 @@ impl Vault {
             let content = fs::read_to_string(file_path)
                 .map_err(|e| format!("Failed to read {}: {}", file_path.display(), e))?;
 
-            // Get scene ID from filename (without .md)
-            let scene_id = file_path
+            // Get ID from filename (without .md)
+            let id = file_path
                 .file_stem()
                 .and_then(|s| s.to_str())
                 .ok_or("Invalid filename")?
                 .to_string();
 
-            // Parse scene from markdown
-            let scene = Scene::from_markdown(scene_id.clone(), &content)?;
-            scenes.insert(scene_id, scene);
+            // Check if file is in characters folder
+            let is_character = file_path
+                .components()
+                .any(|c| c.as_os_str() == "characters");
+
+            if is_character {
+                let character = Character::from_markdown(id.clone(), &content)?;
+                characters.insert(id, character);
+            } else {
+                let scene = Scene::from_markdown(id.clone(), &content)?;
+                scenes.insert(id, scene);
+            }
         }
 
         if scenes.is_empty() {
             return Err("No markdown files found in vault".to_string());
         }
 
-        Ok(Vault { scenes })
+        Ok(Vault { scenes, characters })
     }
 
     pub fn get_scene(&self, id: &str) -> Option<&Scene> {
@@ -59,6 +71,16 @@ impl Vault {
 
     pub fn list_scenes(&self) -> Vec<String> {
         let mut ids: Vec<_> = self.scenes.keys().cloned().collect();
+        ids.sort();
+        ids
+    }
+
+    pub fn get_character(&self, id: &str) -> Option<&Character> {
+        self.characters.get(id)
+    }
+
+    pub fn list_characters(&self) -> Vec<String> {
+        let mut ids: Vec<_> = self.characters.keys().cloned().collect();
         ids.sort();
         ids
     }

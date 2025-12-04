@@ -1,4 +1,5 @@
 use regex::Regex;
+use crate::effects::Effect;
 
 #[derive(Debug, Clone)]
 pub struct Scene {
@@ -12,6 +13,7 @@ pub struct Scene {
 pub struct Choice {
     pub target: String,
     pub label: String,
+    pub effects: Vec<Effect>,
 }
 
 impl Scene {
@@ -37,14 +39,22 @@ impl Scene {
             }
         }
 
-        // Parse wikilinks for choices: [[target|label]]
-        let wikilink_re = Regex::new(r"\[\[([^\]|]+)\|([^\]]+)\]\]").unwrap();
+        // Parse wikilinks for choices: [[target|label]](effects)
+        // Pattern: [[target|label]] or [[target|label]](effect1; effect2)
+        let wikilink_re = Regex::new(r"\[\[([^\]|]+)\|([^\]]+)\]\](?:\(([^)]*)\))?").unwrap();
         let mut choices = Vec::new();
 
         for cap in wikilink_re.captures_iter(body) {
             let target = cap.get(1).unwrap().as_str().to_string();
             let label = cap.get(2).unwrap().as_str().to_string();
-            choices.push(Choice { target, label });
+            
+            let effects = if let Some(effects_str) = cap.get(3) {
+                crate::effects::parse_effects(effects_str.as_str()).unwrap_or_default()
+            } else {
+                Vec::new()
+            };
+
+            choices.push(Choice { target, label, effects });
         }
 
         Ok(Scene {

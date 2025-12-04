@@ -8,8 +8,8 @@ fn clear_screen() {
 }
 
 fn strip_wikilinks(content: &str) -> String {
-    // Remove wikilink syntax entirely
-    let re = regex::Regex::new(r"\[\[([^\]|]+)\|([^\]]+)\]\]").unwrap();
+    // Remove wikilink syntax with optional effects: [[target|label]](effects)
+    let re = regex::Regex::new(r"\[\[([^\]|]+)\|([^\]]+)\]\](?:\([^)]*\))?").unwrap();
     re.replace_all(content, "").to_string()
 }
 
@@ -67,10 +67,26 @@ fn main() {
             break;
         }
 
+        // Show state
+        println!("\n{}", "-".repeat(40));
+        println!("State:");
+        for (key, value) in &runtime.state().variables {
+            println!("  {}: {:?}", key, value);
+        }
+
         // Show choices
         println!("\n{}", "-".repeat(40));
         for (i, choice) in scene.choices.iter().enumerate() {
-            println!("{}. {}", i + 1, choice.label);
+            print!("{}. {}", i + 1, choice.label);
+            if !choice.effects.is_empty() {
+                print!(" [", );
+                for (j, effect) in choice.effects.iter().enumerate() {
+                    if j > 0 { print!("; "); }
+                    print!("{} {} {}", effect.variable, effect.operation, effect.value);
+                }
+                print!("]");
+            }
+            println!();
         }
 
         // Get user input
@@ -78,12 +94,14 @@ fn main() {
         io::stdout().flush().unwrap();
 
         let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
+        if io::stdin().read_line(&mut input).is_err() {
+            break;
+        }
 
         let choice = match input.trim().parse::<usize>() {
             Ok(n) if n > 0 && n <= scene.choices.len() => n - 1,
             _ => {
-                println!("Invalid choice");
+                println!("Invalid choice. Try again.");
                 continue;
             }
         };
